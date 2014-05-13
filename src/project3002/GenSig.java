@@ -43,7 +43,7 @@ class GenSig {
         	
         	/* save the public key in a file */
         	byte[] key = pub.getEncoded();
-        	FileOutputStream keyfos = new FileOutputStream("suepk");
+        	FileOutputStream keyfos = new FileOutputStream("testpk");
         	keyfos.write(key);
         	keyfos.close();
 
