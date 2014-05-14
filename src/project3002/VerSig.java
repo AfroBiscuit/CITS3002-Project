@@ -2,6 +2,8 @@ package project3002;
 
 import java.io.*;
 import java.security.*;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.*;
 
 class VerSig {
@@ -12,21 +14,33 @@ class VerSig {
 
         if (args.length != 3) {
             System.out.println("Usage: VerSig " +
-                "publickeyfile signaturefile " + "datafile");
+                "certfile signaturefile " + "datafile");
         }
         else try {
 
-        	FileInputStream keyfis = new FileInputStream(args[0]);
+        	/*FileInputStream keyfis = new FileInputStream(args[0]);
         	byte[] encKey = new byte[keyfis.available()];  
         	keyfis.read(encKey);
 
-        	keyfis.close();
+        	keyfis.close();*/
         	
-        	X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(encKey);
+        	@SuppressWarnings("resource")
+			FileInputStream fis = new FileInputStream(args[1]);
+        	ByteArrayInputStream bis = null;
+
+        	byte value[] = new byte[fis.available()];
+        	  fis.read(value);
+        	  bis = new ByteArrayInputStream(value);
+        	  
+        	  CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        	
+        	//X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(encKey);
         	
         	KeyFactory keyFactory = KeyFactory.getInstance("DSA", "SUN");
         	
-        	PublicKey pubKey = keyFactory.generatePublic(pubKeySpec);
+        	//PublicKey pubKey = keyFactory.generatePublic(pubKeySpec);
+        	
+        	PublicKey pubKeyCert = certFactory.generateCertificate(bis).getPublicKey();
         	
         	FileInputStream sigfis = new FileInputStream(args[1]);
         	byte[] sigToVerify = new byte[sigfis.available()]; 
@@ -35,7 +49,7 @@ class VerSig {
         	
         	Signature sig = Signature.getInstance("SHA1withDSA", "SUN");
         	
-        	sig.initVerify(pubKey);
+        	sig.initVerify(pubKeyCert);
         	
         	FileInputStream datafis = new FileInputStream(args[2]);
         	BufferedInputStream bufin = new BufferedInputStream(datafis);
