@@ -1,10 +1,11 @@
 package project3002;
 
-import java.io.*;
-import java.security.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.*;
 
 class VerSig {
 
@@ -17,15 +18,9 @@ class VerSig {
                 "certfile signaturefile " + "datafile");
         }
         else try {
-
-        	/*FileInputStream keyfis = new FileInputStream(args[0]);
-        	byte[] encKey = new byte[keyfis.available()];  
-        	keyfis.read(encKey);
-
-        	keyfis.close();*/
-        	
+     	
         	@SuppressWarnings("resource")
-			FileInputStream fis = new FileInputStream(args[1]);
+			FileInputStream fis = new FileInputStream(args[0]);
         	ByteArrayInputStream bis = null;
 
         	byte value[] = new byte[fis.available()];
@@ -33,14 +28,8 @@ class VerSig {
         	  bis = new ByteArrayInputStream(value);
         	  
         	  CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
-        	
-        	//X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(encKey);
-        	
-        	KeyFactory keyFactory = KeyFactory.getInstance("DSA", "SUN");
-        	
-        	//PublicKey pubKey = keyFactory.generatePublic(pubKeySpec);
-        	
-        	PublicKey pubKeyCert = certFactory.generateCertificate(bis).getPublicKey();
+        	  
+        	  X509Certificate cert = (X509Certificate)certFactory.generateCertificate(bis);
         	
         	FileInputStream sigfis = new FileInputStream(args[1]);
         	byte[] sigToVerify = new byte[sigfis.available()]; 
@@ -49,7 +38,7 @@ class VerSig {
         	
         	Signature sig = Signature.getInstance("SHA1withDSA", "SUN");
         	
-        	sig.initVerify(pubKeyCert);
+        	sig.initVerify(cert.getPublicKey());
         	
         	FileInputStream datafis = new FileInputStream(args[2]);
         	BufferedInputStream bufin = new BufferedInputStream(datafis);
@@ -71,5 +60,4 @@ class VerSig {
             System.err.println("Caught exception " + e.toString());
         }
     }
-
 }

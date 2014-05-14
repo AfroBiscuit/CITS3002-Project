@@ -1,12 +1,15 @@
 package project3002;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -14,7 +17,9 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 
 import sun.security.x509.AlgorithmId;
@@ -46,8 +51,15 @@ public class CertTest {
 	
 	
 	// not yours, adapt this code though
-	static X509Certificate generateCertificate(String issuee, String issuer, KeyPair pair, int days, String algorithm)
+	static X509Certificate generateCertificate(String issuee, String issuer, int days, String algorithm)
 			throws GeneralSecurityException, IOException {
+		
+		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
+    	SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
+    	keyGen.initialize(1024, random);
+    	
+    	KeyPair pair = keyGen.generateKeyPair();
+    	
 		PrivateKey privkey = pair.getPrivate();
 		PublicKey pubkey = pair.getPublic();
 		X509CertInfo info = new X509CertInfo();
@@ -81,14 +93,22 @@ public class CertTest {
 
 		System.out.println(cert);
 
+		 // Get subject
+        Principal principal = cert.getSubjectDN();
+        String subjectDn = principal.getName();
+
+        // Get issuer
+        principal = cert.getIssuerDN();
+        String issuerDn = principal.getName();
+		
     	byte[] key = pubkey.getEncoded();
-    	FileOutputStream keyfos = new FileOutputStream(owner.getCommonName() + "_pub.pk");
+    	FileOutputStream keyfos = new FileOutputStream(subjectDn + "_pub.key");
     	keyfos.write(key);
     	keyfos.close();
     	
     	PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(
 				privkey.getEncoded());
-    	FileOutputStream prikeyfos = new FileOutputStream(owner.getCommonName() + "_pri.pk");
+    	FileOutputStream prikeyfos = new FileOutputStream(subjectDn + "_pri.key");
     	prikeyfos.write(pkcs8EncodedKeySpec.getEncoded());
     	prikeyfos.close();
 		
@@ -99,6 +119,36 @@ public class CertTest {
 		certout.close();
 		return cert;
 	}  
+	
+	public static KeyPair LoadKeyPair(String path, String algorithm)
+			throws IOException, NoSuchAlgorithmException,
+			InvalidKeySpecException {
+		// Read Public Key.
+		File filePublicKey = new File(path + "/Alex_pub.key");
+		FileInputStream fis = new FileInputStream(path + "/Alex_pub.key");
+		byte[] encodedPublicKey = new byte[(int) filePublicKey.length()];
+		fis.read(encodedPublicKey);
+		fis.close();
+ 
+		// Read Private Key.
+		File filePrivateKey = new File(path + "/Alex_pri.key");
+		fis = new FileInputStream(path + "/Alex_pri.key");
+		byte[] encodedPrivateKey = new byte[(int) filePrivateKey.length()];
+		fis.read(encodedPrivateKey);
+		fis.close();
+ 
+		// Generate KeyPair.
+		KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(
+				encodedPublicKey);
+		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+ 
+		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(
+				encodedPrivateKey);
+		PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+ 
+		return new KeyPair(publicKey, privateKey);
+	}
 	
 	public void testValid(Date currentDate) throws CertificateExpiredException, CertificateNotYetValidException{
 		x509Test.checkValidity(currentDate);
@@ -115,11 +165,8 @@ public class CertTest {
 	
 	
 	public static void main(String[] args) throws GeneralSecurityException, IOException{
-		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
-    	SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    	keyGen.initialize(1024, random);
-    	
-    	KeyPair pair = keyGen.generateKeyPair();
-		generateCertificate("CN = Alex", "CN = Dom", pair, 1, "DSA");
+
+		generateCertificate("CN = Alex", "CN = Dom", 1, "DSA");
+		KeyPair loaded = LoadKeyPair("C:\\Users\\Dom\\Documents\\GitHub\\CITS3002-Project", "DSA");
 	}
 }

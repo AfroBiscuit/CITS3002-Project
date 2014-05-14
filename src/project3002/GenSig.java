@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -18,7 +19,9 @@ import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
 class GenSig {
 
@@ -51,27 +54,16 @@ class GenSig {
 
     	try {
 
-    		String name = cert.getSubjectX500Principal().toString();
+    		String name = cert.getSubjectDN().getName();
     		
         	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
         	SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
         	keyGen.initialize(1024, random);
-        	
-        	File filePrivateKey = new File(file);
-    		FileInputStream fios = new FileInputStream(file);
-    		byte[] encodedPrivateKey = new byte[fios.available()];
-    		fios.read(encodedPrivateKey);
-    		fios.close();
-        	
-    		KeyFactory keyFactory = KeyFactory.getInstance("DSA");
-    		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(
-    				encodedPrivateKey);
-    		PrivateKey privKey = keyFactory.generatePrivate(privateKeySpec);
-    		
-        	PublicKey pub = cert.getPublicKey();
+        	      	
+        	KeyPair loaded = LoadKeyPair("DSA", name);
         	
         	Signature dsa = Signature.getInstance("SHA1withDSA", "SUN");
-        	dsa.initSign(privKey);
+        	dsa.initSign(loaded.getPrivate());
         	
         	FileInputStream fis = new FileInputStream(file);
         	BufferedInputStream bufin = new BufferedInputStream(fis);
@@ -93,4 +85,35 @@ class GenSig {
             System.err.println("Caught exception " + e.toString());
         }
     }
+    
+    //Loads in a keypair from file to be able to recreate the original combo
+    public static KeyPair LoadKeyPair(String algorithm, String owner)
+			throws IOException, NoSuchAlgorithmException,
+			InvalidKeySpecException {
+		// Read Public Key.
+		File filePublicKey = new File(owner + "_pub.key");
+		FileInputStream fis = new FileInputStream(owner + "_pub.key");
+		byte[] encodedPublicKey = new byte[(int) filePublicKey.length()];
+		fis.read(encodedPublicKey);
+		fis.close();
+ 
+		// Read Private Key.
+		File filePrivateKey = new File(owner + "_pri.key");
+		fis = new FileInputStream(owner + "_pri.key");
+		byte[] encodedPrivateKey = new byte[(int) filePrivateKey.length()];
+		fis.read(encodedPrivateKey);
+		fis.close();
+ 
+		// Generate KeyPair.
+		KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(
+				encodedPublicKey);
+		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+ 
+		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(
+				encodedPrivateKey);
+		PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+ 
+		return new KeyPair(publicKey, privateKey);
+	}
 }
