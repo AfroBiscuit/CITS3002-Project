@@ -33,9 +33,24 @@ class GenSig {
             System.out.println("Usage: GenSig nameOfFileToSign nameOfCert nameOfPriKey");
         }
         else{
-       	
+        	generate(args[0], args[1], args[2]);
+        }
+    }
+    
+    /**
+     * Generates a signature given a file to sign, the location of a certificate to sign it, and the private key to sign it with
+     * @param file file to be signed
+     * @param certLoc certificate that is vouching for said file
+     * @param privateKey private key to sign it
+     */
+    public static void generate(String file, String certLoc, String privateKey){
+
+        /* Generate a DSA signature */
+
+    	try {
+
         	@SuppressWarnings("resource")
-			FileInputStream fis = new FileInputStream(args[1]);
+			FileInputStream fis = new FileInputStream(certLoc);
         	ByteArrayInputStream bis = null;
 
         	byte value[] = new byte[fis.available()];
@@ -44,16 +59,8 @@ class GenSig {
         	  
         	  CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
         	  
-        	generate(args[0], (X509Certificate)certFactory.generateCertificate(bis), args[2]);
-        }
-    }
-    
-    public static void generate(String file, X509Certificate cert, String privateKey){
-
-        /* Generate a DSA signature */
-
-    	try {
-
+        	  X509Certificate cert = (X509Certificate)certFactory.generateCertificate(bis);
+    		
     		String name = cert.getSubjectDN().getName();
     		
         	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
@@ -65,8 +72,8 @@ class GenSig {
         	Signature dsa = Signature.getInstance("SHA1withDSA", "SUN");
         	dsa.initSign(loaded.getPrivate());
         	
-        	FileInputStream fis = new FileInputStream(file);
-        	BufferedInputStream bufin = new BufferedInputStream(fis);
+        	FileInputStream fios = new FileInputStream(file);
+        	BufferedInputStream bufin = new BufferedInputStream(fios);
         	byte[] buffer = new byte[1024];
         	int len;
         	while((len = bufin.read(buffer)) >=0){

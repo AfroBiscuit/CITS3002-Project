@@ -1,7 +1,9 @@
 package project3002;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -14,7 +16,9 @@ import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
@@ -37,40 +41,44 @@ import sun.security.x509.X509CertInfo;
 public class CertTest {
 
 	X509Certificate x509Test;
-
-	
-	/*X509Certificate generateCertificate(String dn, KeyPair pair, int days, String algorithm){
-		
-		PrivateKey privKey = pair.getPrivate();
-		X509CertInfo info = new X509CertInfo();
-		Date from = new Date();
-		Date to = new Date(from.getTime() + days*86400000l);
-		
-		
-	}*/
-	
-	
-	// not yours, adapt this code though
+	/**
+	 * Generates a certificate with information given to it
+	 * @param issuee Who the cert is for
+	 * @param issuer Who issued it
+	 * @param days How long its valid for
+	 * @param algorithm the algorithm used to encode it
+	 * @return a valid x509certificate
+	 * @throws GeneralSecurityException
+	 * @throws IOException
+	 */
 	static X509Certificate generateCertificate(String issuee, String issuer, int days, String algorithm)
 			throws GeneralSecurityException, IOException {
 		
+		//need to impose a 16 character minimum
+		if(issuee.length()<16||issuer.length()<16){
+			System.out.println("Issuee/ issuer names not long enough. There is a 16 character minimum.");
+			return null;
+		}
+		else{
+		
+		//generate a private/public key pair for this cert
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
     	SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
     	keyGen.initialize(1024, random);
     	
     	KeyPair pair = keyGen.generateKeyPair();
     	
-		PrivateKey privkey = pair.getPrivate();
-		PublicKey pubkey = pair.getPublic();
-		X509CertInfo info = new X509CertInfo();
-		Date from = new Date();
-		Date to = new Date(from.getTime() + days * 86400000l);
-		CertificateValidity interval = new CertificateValidity(from, to);
-		BigInteger sn = new BigInteger(64, new SecureRandom());
-		X500Name owner = new X500Name(issuee);
-		X500Name issuedby = new X500Name(issuer);
+		PrivateKey privkey = pair.getPrivate(); //private key
+		PublicKey pubkey = pair.getPublic(); //public key
+		X509CertInfo info = new X509CertInfo(); //new info structure for the cert
+		Date from = new Date(); //valid from date
+		Date to = new Date(from.getTime() + days * 86400000l); //valid to date
+		CertificateValidity interval = new CertificateValidity(from, to); //interval of validity
+		BigInteger sn = new BigInteger(64, new SecureRandom()); 
+		X500Name owner = new X500Name(issuee); //recipient
+		X500Name issuedby = new X500Name(issuer); //issuer
 
-		info.set(X509CertInfo.VALIDITY, interval);
+		info.set(X509CertInfo.VALIDITY, interval); //setting that info into the cert
 		info.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(sn));
 		info.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
 		info.set(X509CertInfo.ISSUER, new CertificateIssuerName(issuedby));
@@ -84,14 +92,14 @@ public class CertTest {
 		X509CertImpl cert = new X509CertImpl(info);
 		cert.sign(privkey, algorithm);
 
-		// Update the algorith, and resign.
+		// Update the algorithm, and resign.
 		algo = (AlgorithmId) cert.get(X509CertImpl.SIG_ALG);
 		info.set(CertificateAlgorithmId.NAME + "."
 				+ CertificateAlgorithmId.ALGORITHM, algo);
 		cert = new X509CertImpl(info);
 		cert.sign(privkey, algorithm);
 
-		System.out.println(cert);
+		//System.out.println(cert);
 
 		 // Get subject
         Principal principal = cert.getSubjectDN();
@@ -99,9 +107,7 @@ public class CertTest {
 
         // Get issuer
         principal = cert.getIssuerDN();
-        String issuerDn = principal.getName();
-		
-    	byte[] key = pubkey.getEncoded();
+        byte[] key = pubkey.getEncoded();
     	FileOutputStream keyfos = new FileOutputStream(subjectDn + "_pub.key");
     	keyfos.write(key);
     	keyfos.close();
@@ -113,41 +119,70 @@ public class CertTest {
     	prikeyfos.close();
 		
 		/* save the signature in a file */
-		File certDest = new File(owner.getCommonName() + ".cer");
+		File certDest = new File(subjectDn + ".cer");
 		FileOutputStream certout = new FileOutputStream(certDest);
 		certout.write(cert.getEncoded());
 		certout.close();
 		return cert;
+		}
 	}  
 	
-	public static KeyPair LoadKeyPair(String path, String algorithm)
-			throws IOException, NoSuchAlgorithmException,
-			InvalidKeySpecException {
-		// Read Public Key.
-		File filePublicKey = new File(path + "/Alex_pub.key");
-		FileInputStream fis = new FileInputStream(path + "/Alex_pub.key");
-		byte[] encodedPublicKey = new byte[(int) filePublicKey.length()];
-		fis.read(encodedPublicKey);
-		fis.close();
- 
-		// Read Private Key.
-		File filePrivateKey = new File(path + "/Alex_pri.key");
-		fis = new FileInputStream(path + "/Alex_pri.key");
-		byte[] encodedPrivateKey = new byte[(int) filePrivateKey.length()];
-		fis.read(encodedPrivateKey);
-		fis.close();
- 
-		// Generate KeyPair.
-		KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
-		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(
-				encodedPublicKey);
-		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
- 
-		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(
-				encodedPrivateKey);
-		PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
- 
-		return new KeyPair(publicKey, privateKey);
+	/**
+	 * returns the diameter of the ring of trust for a given certificate
+	 * @param certLoc location of that certificate
+	 * @return the diameter of the ring
+	 */
+	public static int getROTDiameter(String certLoc){
+		int diameter = 0;
+		//instantiate the first certificate, and then loop from there
+		try{
+		@SuppressWarnings("resource")
+		FileInputStream fis = new FileInputStream(certLoc);
+    	ByteArrayInputStream bis = null;
+    	byte value[] = new byte[fis.available()];
+    	fis.read(value);
+    	bis = new ByteArrayInputStream(value);
+    	CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+    	X509Certificate cert = (X509Certificate)certFactory.generateCertificate(bis);
+    	
+    	//System.out.println("First Succeeded");
+    	
+    	//Instantiate the first certificate's issuer's cert, ready for a loop to check
+    	String certIssuerPath = cert.getIssuerDN().getName() + ".cer";
+    	//System.out.println(certIssuerPath);
+
+    	
+		@SuppressWarnings("resource")
+		FileInputStream fisCheck = new FileInputStream(certIssuerPath);
+    	ByteArrayInputStream bisCheck = null;
+    	byte valueCheck[] = new byte[fisCheck.available()];
+    	fisCheck.read(valueCheck);
+    	bisCheck = new ByteArrayInputStream(valueCheck);
+    	X509Certificate certCheck = (X509Certificate)certFactory.generateCertificate(bisCheck);
+    	
+    	//System.out.println("Second Succeeded");
+    	while(!(cert.equals(certCheck))){
+    		certIssuerPath = certCheck.getIssuerDN().getName();
+    		
+    		@SuppressWarnings("resource")
+    		FileInputStream fisCheck2 = new FileInputStream(certIssuerPath + ".cer");
+        	ByteArrayInputStream bisCheck2 = null;
+        	byte valueCheck2[] = new byte[fisCheck2.available()];
+        	fisCheck2.read(valueCheck2);
+        	bisCheck2 = new ByteArrayInputStream(valueCheck2);
+        	certCheck = (X509Certificate)certFactory.generateCertificate(bisCheck2);
+        	diameter++;
+    	}
+		}
+		catch(FileNotFoundException e){
+			System.out.println("Ring does not exist: certificate missing");
+		}
+		catch(Exception e){
+			System.out.println("Something's gone wrong - unable to retrieve diameter");
+			e.printStackTrace();
+		}
+    	
+		return diameter;
 	}
 	
 	public void testValid(Date currentDate) throws CertificateExpiredException, CertificateNotYetValidException{
@@ -161,12 +196,13 @@ public class CertTest {
 	public BigInteger getSerialNumber(){
 		return x509Test.getSerialNumber();
 	}
-	
-	
-	
+
 	public static void main(String[] args) throws GeneralSecurityException, IOException{
 
-		generateCertificate("CN = Alex", "CN = Dom", 1, "DSA");
-		KeyPair loaded = LoadKeyPair("C:\\Users\\Dom\\Documents\\GitHub\\CITS3002-Project", "DSA");
+		generateCertificate("CN = AlexGuglielmino14", "CN = DominicCockman14", 1, "DSA").getSerialNumber();
+		generateCertificate("CN = DominicCockman14", "CN = AlexGuglielmino14", 1, "DSA");
+		generateCertificate("CN = TomBombadillo14", "CN = AlexGuglielmino14", 1, "DSA");
+		generateCertificate("CN = DominicCockman14", "CN = TomBombadillo14", 1, "DSA");
+		System.out.println(getROTDiameter("CN=AlexGuglielmino14.cer"));
 	}
 }
