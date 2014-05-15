@@ -38,6 +38,11 @@ import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
 
+/**
+ * Creates certificates from given information
+ * @author Alex Guglielmino 20933584
+ * @author Dominic Cockman 20927611
+ */
 public class CertTest {
 
 	X509Certificate x509Test;
@@ -108,18 +113,18 @@ public class CertTest {
         // Get issuer
         principal = cert.getIssuerDN();
         byte[] key = pubkey.getEncoded();
-    	FileOutputStream keyfos = new FileOutputStream(subjectDn + "_pub.key");
+    	FileOutputStream keyfos = new FileOutputStream("./ClientPublicKeys/" + subjectDn + "_pub.key");
     	keyfos.write(key);
     	keyfos.close();
     	
     	PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(
 				privkey.getEncoded());
-    	FileOutputStream prikeyfos = new FileOutputStream(subjectDn + "_pri.key");
+    	FileOutputStream prikeyfos = new FileOutputStream("./ClientPrivateKeys/" + subjectDn + "_pri.key");
     	prikeyfos.write(pkcs8EncodedKeySpec.getEncoded());
     	prikeyfos.close();
 		
 		/* save the signature in a file */
-		File certDest = new File(subjectDn + ".cer");
+		File certDest = new File("./ClientCerts/" + subjectDn + ".cer");
 		FileOutputStream certout = new FileOutputStream(certDest);
 		certout.write(cert.getEncoded());
 		certout.close();
@@ -148,7 +153,7 @@ public class CertTest {
     	//System.out.println("First Succeeded");
     	
     	//Instantiate the first certificate's issuer's cert, ready for a loop to check
-    	String certIssuerPath = cert.getIssuerDN().getName() + ".cer";
+    	String certIssuerPath = "./ServerCertificates/" + cert.getIssuerDN().getName() + ".cer";
     	//System.out.println(certIssuerPath);
 
     	
@@ -159,10 +164,11 @@ public class CertTest {
     	fisCheck.read(valueCheck);
     	bisCheck = new ByteArrayInputStream(valueCheck);
     	X509Certificate certCheck = (X509Certificate)certFactory.generateCertificate(bisCheck);
+    	diameter++;
     	
     	//System.out.println("Second Succeeded");
     	while(!(cert.equals(certCheck))){
-    		certIssuerPath = certCheck.getIssuerDN().getName();
+    		certIssuerPath = "./ServerCertificates/" + certCheck.getIssuerDN().getName();
     		
     		@SuppressWarnings("resource")
     		FileInputStream fisCheck2 = new FileInputStream(certIssuerPath + ".cer");
@@ -185,24 +191,15 @@ public class CertTest {
 		return diameter;
 	}
 	
-	public void testValid(Date currentDate) throws CertificateExpiredException, CertificateNotYetValidException{
-		x509Test.checkValidity(currentDate);
-	}
-	
-	public Principal getIssues(){
-		return x509Test.getIssuerDN();
-	}
-	
-	public BigInteger getSerialNumber(){
-		return x509Test.getSerialNumber();
-	}
-
 	public static void main(String[] args) throws GeneralSecurityException, IOException{
 
-		generateCertificate("CN = AlexGuglielmino14", "CN = DominicCockman14", 1, "DSA").getSerialNumber();
+		//generating some certs for use later on
+		generateCertificate("CN = AlexGuglielmino14", "CN = DominicCockman14", 1, "DSA");
 		generateCertificate("CN = DominicCockman14", "CN = AlexGuglielmino14", 1, "DSA");
 		generateCertificate("CN = TomBombadillo14", "CN = AlexGuglielmino14", 1, "DSA");
-		generateCertificate("CN = DominicCockman14", "CN = TomBombadillo14", 1, "DSA");
-		System.out.println(getROTDiameter("CN=AlexGuglielmino14.cer"));
+		generateCertificate("CN = LeonardoDiCaprio14", "CN = TomBombadillo14", 1, "DSA");
+		generateCertificate("CN = WakaFlackaFlame14", "CN = DominicCockman14", 1, "DSA");
+		generateCertificate("CN = DominicCockman14", "CN = DominicCockman14", 1, "DSA");
+		generateCertificate("CN = MicrosoftMegaCorp14", "CN = AlexGuglielmino14", 1, "DSA");
 	}
 }

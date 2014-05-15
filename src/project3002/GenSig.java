@@ -23,7 +23,12 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
-class GenSig {
+/**
+ * Handles signature creation based on file, certificate and private key
+ * @author Alex Guglielmino 20933584
+ * @author Dominic Cockman 20927611
+ */
+public class GenSig {
 
     public static void main(String[] args) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException {
 
@@ -43,10 +48,15 @@ class GenSig {
      * @param certLoc certificate that is vouching for said file
      * @param privateKey private key to sign it
      */
-    public static void generate(String file, String certLoc, String privateKey){
+    public static File generate(String file, String certLoc, String privateKey){
 
+    	//adapted from http://docs.oracle.com/javase/tutorial/displayCode.html?code=http://docs.oracle.com/javase/tutorial/security/apisign/examples/GenSig.java
         /* Generate a DSA signature */
 
+    	File storedSig = null;
+    	String  result = file.replaceAll("[^\\p{L}\\p{Z}]","");
+    	System.out.println(file);
+    	System.out.println(result);
     	try {
 
         	@SuppressWarnings("resource")
@@ -84,29 +94,35 @@ class GenSig {
         	byte[] realSig = dsa.sign();
         	
         	/* save the signature in a file */
-        	FileOutputStream sigfos = new FileOutputStream(file + "_" + name + ".sig");
+        	FileOutputStream sigfos = new FileOutputStream(result + "_" + name + ".sig");
         	sigfos.write(realSig);
         	sigfos.close();
+        	
+        	storedSig = new File(result + "_" + name + ".sig");
+        	
+        	return storedSig;
 
         } catch (Exception e) {
             System.err.println("Caught exception " + e.toString());
         }
+		return storedSig;
     }
     
     //Loads in a keypair from file to be able to recreate the original combo
+    //Adapted from http://snipplr.com/view/18368/
     public static KeyPair LoadKeyPair(String algorithm, String owner)
 			throws IOException, NoSuchAlgorithmException,
 			InvalidKeySpecException {
 		// Read Public Key.
-		File filePublicKey = new File(owner + "_pub.key");
-		FileInputStream fis = new FileInputStream(owner + "_pub.key");
+		File filePublicKey = new File("./ClientPublicKeys/" + owner + "_pub.key");
+		FileInputStream fis = new FileInputStream("./ClientPublicKeys/" + owner + "_pub.key");
 		byte[] encodedPublicKey = new byte[(int) filePublicKey.length()];
 		fis.read(encodedPublicKey);
 		fis.close();
  
 		// Read Private Key.
-		File filePrivateKey = new File(owner + "_pri.key");
-		fis = new FileInputStream(owner + "_pri.key");
+		File filePrivateKey = new File("./ClientPrivateKeys/" + owner + "_pri.key");
+		fis = new FileInputStream("./ClientPrivateKeys/" + owner + "_pri.key");
 		byte[] encodedPrivateKey = new byte[(int) filePrivateKey.length()];
 		fis.read(encodedPrivateKey);
 		fis.close();

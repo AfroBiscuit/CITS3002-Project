@@ -1,5 +1,6 @@
 package project;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
@@ -7,11 +8,21 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
+/**
+ * 
+ * @author Alex Guglielmino 20933584
+ * @author Dominic Cockman 20927611
+ *
+ */
 public class Server {
-	private final int PORTNUM = 4242;
-	private final int TIMEOUT = 2000;
+	private final int PORTNUM = 4444;
+	private final int TIMEOUT = 1500;
+	protected static final String[] SERVERDIRECTORIES = {"ServerFiles", "ServerCertificates", "ServerSignatures"};
 	private ArrayList<ServerThread> threadList = new ArrayList<ServerThread>();
 	
+	/**
+	 * Exits the server
+	 */
 	public enum EXIT_COMMAND {
 		Q("-q"), QUIT("quit"), EXIT("exit"), CONTINUE("");
 		
@@ -27,16 +38,27 @@ public class Server {
 		}
 	}
 	
+	/**
+	 * Main method
+	 * @param args
+	 * @throws IOException
+	 */
 	public static void main(String[] args) throws IOException {
 		
 		new Server().runServer();
 		System.exit(0);
 	}
 	
+	/**
+	 * starts the server up
+	 * @throws IOException
+	 */
 	private void runServer() throws IOException {
 		// pre startup message
 		ServerSocket serverSocket = new ServerSocket(PORTNUM);
 		serverSocket.setSoTimeout(TIMEOUT);
+		serverDirectoryCheck();
+		
 		System.out.println("Server: Server has started broadcast on port " + PORTNUM + " and is waiting for connections...");
 		System.out.println("Server: Type '-q' or 'quit' or 'exit' anytime to shutdown server");
 		
@@ -69,5 +91,29 @@ public class Server {
 		
 		serverSocket.close();
 		System.out.println("Server: Server shut down...");
+	}
+
+	/**
+	 * Checks that all of the directories necessary for storing files on the server separately exist. 
+	 * These directories are listed in the directories string array SERVERDIRECTORIES.
+	 */
+	private void serverDirectoryCheck() {
+		try {
+			System.out.println("Server: Checking server directories...");
+			for(String s: SERVERDIRECTORIES) {
+				File file = new File(s);
+				if(!file.exists()) {
+					if(!file.mkdir()) {
+						throw new Exception("Error creating server directories");
+					}
+				}
+				if(!file.isDirectory()) {
+						throw new Exception("Server directory names must be for directories only!");		
+				}
+			}
+			System.out.println("Server: Server directories checked.");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

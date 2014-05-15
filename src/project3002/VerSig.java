@@ -9,7 +9,13 @@ import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-class VerSig {
+/**
+ * Handles the verification of a signature given the signature, a certificate for that signature and a file to compare against
+ * @author Alex Guglielmino 20933584
+ * @author Dominic Cockman 20927611
+ *
+ */
+public class VerSig {
 
     public static void main(String[] args) {
 
@@ -36,7 +42,9 @@ class VerSig {
      * @throws IOException
      * @throws GeneralSecurityException
      */
-    public static void verifySign(String certLoc, String signLoc, String file) throws IOException, GeneralSecurityException{
+    public static boolean verifySign(String certLoc, String signLoc, String file) throws IOException, GeneralSecurityException{
+    	
+    	//adapted from http://docs.oracle.com/javase/tutorial/displayCode.html?code=http://docs.oracle.com/javase/tutorial/security/apisign/examples/VerSig.java
     	@SuppressWarnings("resource")
 		FileInputStream fis = new FileInputStream(certLoc);
     	ByteArrayInputStream bis = null;
@@ -73,5 +81,6 @@ class VerSig {
     	boolean verifies = sig.verify(sigToVerify);
 
     	System.out.println("signature verifies: " + verifies);
+		return verifies;
     }
 }
